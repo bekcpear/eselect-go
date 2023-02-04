@@ -83,11 +83,11 @@ do_show() {
 
 	write_list_start "Current Go version:"
 	if [[ -L "${EROOT}${bindir}/go" ]] ; then
-		go=$(basename $(canonicalise ${EROOT}${bindir}/go ) )
+		go=$(basename $(readlink ${EROOT}${bindir}/go ) )
 		write_kv_list_entry $go ""
 	elif [[ -e "${EROOT}${bindir}/go" ]] ; then
 		write_warning_msg "${bindir}/go is a SLOT incompatible version."
-		write_kv_list_entry "$(basename $(canonicalise ${EROOT}${bindir}/go ) )" ""
+		write_kv_list_entry "$(basename $(readlink ${EROOT}${bindir}/go ) )" ""
 	else
 		write_kv_list_entry "(none)"
 		return 1
