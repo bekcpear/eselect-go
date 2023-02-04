@@ -43,6 +43,8 @@ remove_symlinks() {
 	for f in ${EROOT}${bindir}/{go,gofmt} ${EROOT}${libdir}/go; do
 		if [[ -L "$f" ]]; then
 			rm -r "$f"
+		elif ! [[ -e "$f" ]]; then
+			:
 		else
 			write_warning_msg "'$f' is not a symlink, skip removing it."
 		fi
@@ -106,7 +108,7 @@ do_list() {
 		line="${targets[i]}"
 
 		# find out the current version
-		if [[ ${targets[i]} = $(basename $(canonicalise "${EROOT}${bindir}/go")) ]] ; then
+		if [[ ${targets[i]} = $(basename $(readlink "${EROOT}${bindir}/go")) ]] ; then
 			targets[i]=$(highlight_marker "${line}")
 		else
 			targets[i]=${line}
