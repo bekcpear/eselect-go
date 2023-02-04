@@ -4,7 +4,7 @@
 
 DESCRIPTION="Manage Golang symlinks"
 MAINTAINER="i@bitbili.net"
-VERSION="20230204"
+VERSION="20230205"
 
 bindir=/usr/bin
 libdir=/usr/lib
