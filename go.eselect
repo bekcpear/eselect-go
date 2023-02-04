@@ -10,7 +10,7 @@ bindir=/usr/bin
 libdir=/usr/lib
 
 find_targets() {
-  for t in $(ls -1v ${EROOT}${bindir}/go1.*) ; do
+	for t in $(ls -1v ${EROOT}${bindir}/go1.*) ; do
 		[[ -x $t ]] && basename "$t"
 	done
 }
@@ -21,11 +21,11 @@ check_target() {
 
 	# number from the list
 	if is_number ${target} && [[ ${target} -ge 1 ]] ; then
-    local t=${targets[$((${target} - 1 ))]}
+		local t=${targets[$((${target} - 1 ))]}
 		if [[ ${target} -gt ${#targets[@]} ]] ; then
 			target="invalid"
-		elif [[ -e "$t" ]] ; then
-			target=$(basename $t )
+		elif [[ -e "$bindir"/"$t" ]] ; then
+			target=$t
 		else
 			write_warning_msg $t
 			target="invalid"
@@ -39,14 +39,14 @@ check_target() {
 }
 
 remove_symlinks() {
-  local f
+	local f
 	for f in ${EROOT}${bindir}/{go,gofmt} ${EROOT}${libdir}/go; do
-    if [[ -L "$f" ]]; then
-      rm -r "$f"
-    else
-		  write_warning_msg "'$f' is not a symlink, skip removing it."
-    fi
-  done
+		if [[ -L "$f" ]]; then
+			rm -r "$f"
+		else
+			write_warning_msg "'$f' is not a symlink, skip removing it."
+		fi
+	done
 }
 
 set_symlinks() {
@@ -62,8 +62,8 @@ set_symlinks() {
 		ln -s "${f}${version}" "${binPath}${f}" || \
 			die "Could not set ${f} bin symlink"
 	done
-  ln -s "go${version}" "${libPath}go" || \
-    die "Could not set the go lib symlink"
+	ln -s "go${version}" "${libPath}go" || \
+		die "Could not set the go lib symlink"
 
 	write_list_start "Successfully switched to version:"
 	write_kv_list_entry "${target}" ""
@@ -103,10 +103,10 @@ do_list() {
 	local i line
 
 	for (( i = 0; i < ${#targets[@]}; i++ )) ; do
-		line=$(basename "${targets[i]}")
+		line="${targets[i]}"
 
 		# find out the current version
-		if [[ ${targets[i]} = $(canonicalise "${EROOT}${bindir}/go") ]] ; then
+		if [[ ${targets[i]} = $(basename $(canonicalise "${EROOT}${bindir}/go")) ]] ; then
 			targets[i]=$(highlight_marker "${line}")
 		else
 			targets[i]=${line}
@@ -162,7 +162,7 @@ do_cleanup() {
 
 	if [[ ${#targets[@]} -ne 0 ]] ; then
 		echo "Marking the latest still installed version as default..."
-		set_symlinks $(basename ${targets[@]: -1})
+		set_symlinks ${targets[@]: -1}
 	else
 		echo "No Go binary left on the system. Stale symlinks removed."
 	fi
