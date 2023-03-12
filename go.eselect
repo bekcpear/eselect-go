@@ -152,7 +152,8 @@ do_cleanup() {
 	[[ -z ${@} ]] || die -q "This function does not expect any arguments"
 
 	# Do we need to clean up?
-	if [[ -e "${EROOT}${bindir}"/$(readlink "${EROOT}${bindir}/go") ]]; then
+	if [[ -e "${EROOT}${bindir}/go" ]] && \
+		[[ -e "${EROOT}${bindir}"/$(readlink "${EROOT}${bindir}/go") ]]; then
 		echo "Nothing to clean up."
 		return
 	fi
