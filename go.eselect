@@ -4,30 +4,34 @@
 
 DESCRIPTION="Manage Golang symlinks"
 MAINTAINER="i@bitbili.net"
-VERSION="20230312"
+VERSION="20240203"
 
 bindir=/usr/bin
 libdir=/usr/lib
 
 find_targets() {
-	for t in $(ls -1v ${EROOT}${bindir}/go1.*) ; do
-		[[ -x $t ]] && basename "$t"
-	done
+	local file
+	while read -r file; do
+		[[ -x $file ]] && basename "$file"
+	done < <(find "${EROOT}${bindir}" -maxdepth 1 -name 'go[[:digit:]].[[:digit:]]*')
 }
 
 check_target() {
-	local target=${1} targets
-	targets=( $(find_targets ) )
+	local target=${1} _target
+	local -a targets
+	while read -r _target; do
+		targets+=( "$_target" )
+	done < <(find_targets)
 
 	# number from the list
-	if is_number ${target} && [[ ${target} -ge 1 ]] ; then
-		local t=${targets[$((${target} - 1 ))]}
-		if [[ ${target} -gt ${#targets[@]} ]] ; then
+	if is_number "$target" && (( target >= 1 )) ; then
+		local t=${targets[$((target - 1 ))]}
+		if (( target > ${#targets[@]} )) ; then
 			target="invalid"
-		elif [[ -e "$bindir"/"$t" ]] ; then
+		elif [[ -e "${EROOT}${bindir}/${t}" ]] ; then
 			target=$t
 		else
-			write_warning_msg $t
+			write_warning_msg "$t"
 			target="invalid"
 		fi
 	# `goX.XX' string
@@ -35,7 +39,7 @@ check_target() {
 			target="invalid"
 	fi
 
-	echo -n ${target}
+	echo -n "$target"
 }
 
 remove_symlinks() {
@@ -77,17 +81,17 @@ describe_show() {
 }
 
 do_show() {
-	[[ -z "${@}" ]] || die -q "This function does not expect any arguments"
+	[[ -z "$*" ]] || die -q "This function does not expect any arguments"
 
 	local go=""
 
 	write_list_start "Current Go version:"
 	if [[ -L "${EROOT}${bindir}/go" ]] ; then
-		go=$(basename $(readlink ${EROOT}${bindir}/go ) )
-		write_kv_list_entry $go ""
+		go=$(basename "$(readlink "${EROOT}${bindir}/go")" )
+		write_kv_list_entry "$go" ""
 	elif [[ -e "${EROOT}${bindir}/go" ]] ; then
 		write_warning_msg "${bindir}/go is a SLOT incompatible version."
-		write_kv_list_entry "$(basename $(readlink ${EROOT}${bindir}/go ) )" ""
+		write_kv_list_entry "$(basename "$(readlink "${EROOT}${bindir}/go")" )" ""
 	else
 		write_kv_list_entry "(none)"
 		return 1
@@ -101,14 +105,17 @@ describe_list() {
 
 do_list() {
 	write_list_start "Available Go versions:"
-	local targets=( $(find_targets) )
-	local i line
+	local i line _target
+	local -a targets
+	while read -r _target; do
+		targets+=( "$_target" )
+	done < <(find_targets)
 
 	for (( i = 0; i < ${#targets[@]}; i++ )) ; do
 		line="${targets[i]}"
 
 		# find out the current version
-		if [[ ${targets[i]} = $(basename $(readlink "${EROOT}${bindir}/go")) ]] ; then
+		if [[ ${targets[i]} == $(basename "$(readlink "${EROOT}${bindir}/go")") ]] ; then
 			targets[i]=$(highlight_marker "${line}")
 		else
 			targets[i]=${line}
@@ -131,16 +138,16 @@ describe_set_parameters() {
 }
 
 do_set() {
-	[[ -z ${@} ]] && die -q "Parameter expected."
+	[[ -z "$*" ]] && die -q "Parameter expected."
 
-	local target=$(check_target ${1})
+	local target
+	target="$(check_target "$1")"
 
 	[[ $target = "invalid" ]] && die -q "Can't use that version. No suitable Go binary found."
 
-	remove_symlinks || \
-		die "Could not remove symlinks"
+	remove_symlinks || die "Could not remove symlinks"
 
-	set_symlinks ${target}
+	set_symlinks "$target"
 }
 
 ### cleanup action ###
@@ -149,7 +156,7 @@ describe_cleanup() {
 }
 
 do_cleanup() {
-	[[ -z ${@} ]] || die -q "This function does not expect any arguments"
+	[[ -z "$*" ]] || die -q "This function does not expect any arguments"
 
 	# Do we need to clean up?
 	if [[ -e "${EROOT}${bindir}/go" ]] && \
@@ -158,14 +165,17 @@ do_cleanup() {
 		return
 	fi
 
-	local targets=( $(find_targets) )
+	local  _target
+	local -a targets
+	while read -r _target; do
+		targets+=( "$_target" )
+	done < <(find_targets)
 
-	remove_symlinks || \
-		die -q "Could not remove symlinks"
+	remove_symlinks || die -q "Could not remove symlinks"
 
 	if [[ ${#targets[@]} -ne 0 ]] ; then
 		echo "Marking the latest still installed version as default..."
-		set_symlinks ${targets[@]: -1}
+		set_symlinks "${targets[@]: -1}"
 	else
 		echo "No Go binary left on the system. Stale symlinks removed."
 	fi
